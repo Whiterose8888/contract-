@@ -49,7 +49,7 @@ nav button.on{color:var(--ac);box-shadow:inset 0 2px 0 var(--ac)}
 <div id="app"></div>
 <nav id="nav"></nav>
 <script>
-const CODES={'кп':['КП','#1f7a6b'],'у':['У','#5b8a2f'],'з':['З','#3b6fb5'],'р':['Р','#a8801c'],'к':['К','#7a4fb0'],'б':['Б','#b5483b'],'в':['В','#6d7a72'],'о':['О','#8d9b92'],'отп':['Отп','#b0628f'],'оц':['Оц','#2f6f8f'],'удн':['Уч-д','#c0622b'],'усу':['Уч-с','#a83a2b']};
+const CODES={'н':['К','#7a7a3a'],'кп':['КП','#1f7a6b'],'у':['У','#5b8a2f'],'з':['З','#3b6fb5'],'р':['Р','#a8801c'],'к':['Ком','#7a4fb0'],'б':['Б','#b5483b'],'в':['В','#6d7a72'],'о':['О','#8d9b92'],'отп':['Отп','#b0628f'],'оц':['Оц','#2f6f8f'],'удн':['Уч-д','#c0622b'],'усу':['Уч-с','#a83a2b']};
 const MN=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 const POSTC='#4a5a2b';
 let S={start:'',end:'',days:{},filled:{}};
@@ -63,7 +63,7 @@ const today=()=>{const t=new Date();return t.getFullYear()+'-'+pad(t.getMonth()+
 const dim=(y,m)=>new Date(y,m,0).getDate();
 const gs=()=>{let m='';for(const k in S.days){if(isDuty(S.days[k])&&k>=S.start&&(!m||k<m))m=k}return m||S.start};
 const isPost=c=>/^\d\/\d$/.test(c);
-const isDuty=c=>isPost(c)||c==='кп'||c==='у';
+const isDuty=c=>isPost(c)||c==='кп'||c==='у'||c==='н';
 const lab=c=>CODES[c]?CODES[c][0]:c;
 const col=c=>CODES[c]?CODES[c][1]:POSTC;
 const ymName=ym=>{const a=ym.split('-');return MN[a[1]-1]+' '+a[0]};
@@ -77,7 +77,10 @@ function agenda(){const w=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'],t=d
 
 function months(){const b=S.end.slice(0,7),r=[];let a=S.start.slice(0,7).split('-').map(Number),y=a[0],m=a[1];
  while(r.length<240){const k=y+'-'+pad(m);r.push(k);if(k>=b)break;m++;if(m>12){m=1;y++}}return r}
-function filledDays(){const out=[];months().forEach(ym=>{if(!S.filled[ym])return;const a=ym.split('-').map(Number);
+function filledDays(){const out=[],last={};for(const k in S.days){const m=k.slice(0,7);if(!last[m]||k>last[m])last[m]=k}
+ months().forEach(ym=>{if(!S.filled[ym]&&!last[ym])return;const a=ym.split('-').map(Number),n=dim(a[0],a[1]),lim=S.filled[ym]?ym+'-'+pad(n):last[ym];
+  for(let d=1;d<=n;d++){const k=ym+'-'+pad(d);if(k>lim||k<gs()||k<S.start||k>S.end)continue;out.push([k,S.days[k]||'в'])}});return out}
+function filledDaysOld(){const out=[];months().forEach(ym=>{if(!S.filled[ym])return;const a=ym.split('-').map(Number);
  for(let d=1;d<=dim(a[0],a[1]);d++){const k=ym+'-'+pad(d);if(k<gs()||k>S.end)continue;out.push([k,S.days[k]||'в'])}});return out}
 function lastFilled(){let l=0;months().forEach(ym=>{if(!S.filled[ym])return;const a=ym.split('-').map(Number);let e=ym+'-'+pad(dim(a[0],a[1]));if(e>S.end)e=S.end;l=Math.max(l,dn(e))});return l}
 function stats(p){p=p||'all';const cnt={},post={},shift={},mon={},duty=[];const list=filledDays().filter(x=>inPer(x[0],p));
@@ -94,7 +97,7 @@ function saveDates(){const s=$('#s').value,e=$('#e').value;if(!s||!e||s>=e){msg=
 
 function home(){const tot=dn(S.end)-dn(S.start)+1,t=dn(today());
  const passed=Math.max(0,Math.min(tot,t-dn(S.start)+1)),left=Math.max(0,dn(S.end)-t),pct=Math.round(passed/tot*100);
- const nowYm=today().slice(0,7),need=months().filter(m=>m<=nowYm&&m>=gs().slice(0,7)&&!S.filled[m]);
+ const nowYm=today().slice(0,7),need=months().filter(m=>m<=nowYm&&m>=gs().slice(0,7)&&!S.filled[m]&&!Object.keys(S.days).some(k=>k.slice(0,7)===m));
  let h='<div class="card"><div class="mut">До конца контракта</div><div class="big">'+left+'</div><div>'+(left%10===1&&left%100!==11?'день':(left%10>=2&&left%10<=4&&(left%100<10||left%100>=20)?'дня':'дней'))+', примерно '+(left/30.4).toFixed(1)+' мес.</div><div class="bar"><i style="width:'+pct+'%"></i></div><div class="mut">Пройдено '+passed+' из '+tot+' дн. ('+pct+'%)</div></div>';
  if(!Object.keys(S.days).some(k=>isDuty(S.days[k])))h+='<div class="card"><b>Отметь первые сутки</b><div class="mut">Статистика начнётся с первых суток в графике. КМБ и стажировки вводить не нужно.</div><div class="flex"><button onclick="goMonth(\''+nowYm+'\')">Открыть календарь</button></div></div>';else if(need.length)h+='<div class="card"><b>Заполни график: '+ymName(need[0])+'</b><div class="mut">Незаполненных месяцев: '+need.length+'</div><div class="flex"><button onclick="goMonth(\''+need[0]+'\')">Открыть месяц</button></div></div>';
  const st=stats(),rem=Math.max(0,dn(S.end)-dn(today()));
@@ -111,7 +114,7 @@ function goMonth(m){cur=m;tab='cal';sel=[];render()}
 function cal(){const ms=months();if(!ms.includes(cur)){const n=today().slice(0,7);cur=ms.includes(n)?n:ms[0]}
  const a=cur.split('-').map(Number),y=a[0],m=a[1],first=(new Date(y,m-1,1).getDay()+6)%7,n=dim(y,m);
  let h='<div class="hd"><button class="sec" onclick="nav(-1)">‹</button><h1 style="font-size:24px">'+ymName(cur)+'</h1><button class="sec" onclick="nav(1)">›</button></div>';
- h+='<div class="mut" style="text-align:center;margin:4px 0 8px">'+(S.filled[cur]?'Месяц заполнен ✓':'Месяц ещё не отмечен как заполненный')+'</div><div class="grid">';
+ h+='<div class="mut" style="text-align:center;margin:4px 0 8px">'+(S.filled[cur]?'Месяц отмечен как законченный ✓':'В статистику идут дни до последней отмеченной даты')+'</div><div class="grid">';
  ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].forEach(w=>h+='<div class="dw">'+w+'</div>');
  for(let i=0;i<first;i++)h+='<div></div>';
  for(let d=1;d<=n;d++){const k=cur+'-'+pad(d),c=S.days[k],out=k<S.start||k>S.end;
@@ -122,10 +125,12 @@ function cal(){const ms=months();if(!ms.includes(cur)){const n=today().slice(0,7
  h+='</div><div class="mut" style="margin-top:8px">Другое</div><div class="chips">';
  Object.keys(CODES).forEach(c=>h+='<button style="background:'+col(c)+'" onclick="apply(\''+c+'\')">'+lab(c)+'</button>');
  h+='<button class="sec" style="color:var(--tx)" onclick="clearDay()">Стереть</button></div>'+
- '<div class="mut" style="margin-top:8px">После наряда следующий пустой день автоматически становится отсыпным (О).</div></div>'+
+ '<div class="mut" style="margin-top:8px">К: караул (пост ещё не указан). Потом выбери этот день и поставь пост, он заменится. После наряда следующий пустой день автоматически становится отсыпным (О).</div></div>'+
  '<div class="card"><b>Цикл до конца месяца</b><div class="mut">Берёт выбранный день как первый наряд (код — последний выбранный пост/КП/У).</div><div class="flex"><select id="cy" style="flex:1"><option value="3">Сутки-двое</option><option value="4">Через трое</option><option value="5">Через четверо</option></select><button class="sec" onclick="cycle()">Заполнить</button></div></div>'+
- '<div class="flex"><button onclick="toggleFilled()">'+(S.filled[cur]?'Снять отметку «заполнен»':'Месяц заполнен ✓')+'</button></div><p class="mut">Дни без кода в заполненном месяце считаются выходными.</p><p class="warn">'+msg+'</p>';
+ '<div class="flex"><button onclick="toggleFilled()">'+(S.filled[cur]?'Снять отметку «закончен»':'Месяц закончен ✓')+'</button></div><p class="mut">Статистика считается автоматически по отмеченным дням. Кнопку «Месяц закончен» нажимай, когда месяц прошёл: тогда пустые дни до его конца считаются выходными. Пропущенные дни между отмеченными тоже считаются выходными.</p><p class="warn">'+msg+'</p>';
  return h}
+function legend(){const L=[['К','Караул','#7a7a3a'],['КП','Заступаю на КПП','#1f7a6b'],['У','Усиление','#5b8a2f'],['Оц','Оцепление','#2f6f8f'],['Уч-д','Учения дневные','#c0622b'],['Уч-с','Учения суточные','#a83a2b'],['З','Занятия','#3b6fb5'],['Р','Рабочий день 8:00–17:00','#a8801c'],['Ком','Командировка','#7a4fb0'],['Б','Больничный','#b5483b'],['В','Выходной','#6d7a72'],['О','Отсыпной','#8d9b92'],['Отп','Отпуск','#b0628f'],['4/1','Пост 4, смена 1 (посты 4–9, смены 1–2)',POSTC]];
+ return '<h2>Обозначения</h2><div class="card">'+L.map(x=>'<div class="row"><b style="background:'+x[2]+';color:#fff;border-radius:6px;padding:2px 8px;min-width:50px;text-align:center;flex:none">'+x[0]+'</b><span style="width:auto">'+x[1]+'</span></div>').join('')+'</div>'}
 function nav(d){const ms=months(),i=ms.indexOf(cur)+d;if(i>=0&&i<ms.length){cur=ms[i];sel=[];anchor=''}render()}
 function pickDay(k){msg='';if(range){if(anchor){const a=dn(anchor),b=dn(k),lo=Math.min(a,b),hi=Math.max(a,b);sel=[];for(let i=lo;i<=hi;i++)sel.push(fromDn(i));anchor=''}else{anchor=k;sel=[k]}}else sel=[k];render()}
 function apply(c){msg='';if(!sel.length){msg='Сначала выбери день';render();return}
@@ -143,15 +148,15 @@ function cycle(){msg='';if(!sel.length||sel.length>1){msg='Выбери один
  save();render()}
 function toggleFilled(){if(S.filled[cur])delete S.filled[cur];else S.filled[cur]=true;save();render()}
 
-function statsView(){const st=stats(per);if(!st.tot)return '<h1 style="font-size:28px">Статистика</h1>'+perBar()+'<div class="card mut">Нет данных за этот период. Заполни месяц в календаре и отметь его как заполненный.</div>';
- const keys=['кп','у','оц','удн','усу','з','р','к','б','в','о','отп'];
- let h='<h1 style="font-size:28px">Статистика</h1>'+perBar()+'<div class="card"><div class="mut">Всего суток (нарядов)</div><div class="big">'+st.dutyN+'</div><div class="mut">за '+st.tot+' дн. в заполненных месяцах</div></div>';
+function statsView(){const st=stats(per);if(!st.tot)return '<h1 style="font-size:28px">Статистика</h1>'+perBar()+'<div class="card mut">Нет данных за этот период. Отметь дни в календаре.</div>';
+ const keys=['н','кп','у','оц','удн','усу','з','р','к','б','в','о','отп'];
+ let h='<h1 style="font-size:28px">Статистика</h1>'+perBar()+'<div class="card"><div class="mut">Всего суток (нарядов)</div><div class="big">'+st.dutyN+'</div><div class="mut">за '+st.tot+' дн. с первых суток</div></div>';
  const pm=Math.max(1,...Object.values(st.post));
  h+='<h2>Посты</h2><div class="card">';const pr=[];for(let p=4;p<=9;p++)pr.push(['Пост '+p,st.post[p]||0]);pr.sort((a,b)=>b[1]-a[1]).forEach(x=>h+=row(x[0],x[1],pm));
- h+='</div><h2>Смены и другие наряды</h2><div class="card">';[['Смена 1',st.shift[1]||0,'#7a8a52'],['Смена 2',st.shift[2]||0,'#7a8a52'],['КП',st.cnt['кп']||0,col('кп')],['Усиление',st.cnt['у']||0,col('у')]].sort((a,b)=>b[1]-a[1]).forEach(x=>h+=row(x[0],x[1],Math.max(1,pm,st.cnt['кп']||0,st.cnt['у']||0,st.shift[1]||0,st.shift[2]||0),x[2]));h+='</div>';
+ h+='</div><h2>Смены и другие наряды</h2><div class="card">';[['Смена 1',st.shift[1]||0,'#7a8a52'],['Смена 2',st.shift[2]||0,'#7a8a52'],['КП',st.cnt['кп']||0,col('кп')],['Усиление',st.cnt['у']||0,col('у')],['Караул',st.cnt['н']||0,col('н')]].sort((a,b)=>b[1]-a[1]).forEach(x=>h+=row(x[0],x[1],Math.max(1,pm,st.cnt['кп']||0,st.cnt['у']||0,st.shift[1]||0,st.shift[2]||0),x[2]));h+='</div>';
  const g=st.gaps,gm=Math.max(1,g[1]||0,g[2]||0,g[3]||0,g[4]||0,g[5]||0);
  h+='<h2>Как часто ходил</h2><div class="card">'+[['Через сутки',g[2]||0],['Через двое',g[3]||0],['Через трое',g[4]||0],['Через четверо',g[5]||0],['Подряд',g[1]||0]].sort((a,b)=>b[1]-a[1]).map(x=>row(x[0],x[1],gm)).join('')+'<div class="mut" style="margin-top:6px">Через сутки: наряд, отсыпной и сразу следующий наряд.</div></div>';
- const nm={'кп':'КП','у':'Усиление','оц':'Оцепление','з':'Занятия','р':'Рабочие','к':'Командировка','б':'Больничный','в':'Выходные','о':'Отсыпные','отп':'Отпуск','удн':'Учения дневные','усу':'Учения суточные'},ol=[['Сутки (наряды)',st.dutyN,POSTC]];keys.forEach(k=>{if(st.cnt[k])ol.push([nm[k],st.cnt[k],col(k)])});ol.sort((a,b)=>b[1]-a[1]);const dm=Math.max(1,ol[0][1]);
+ const nm={'н':'Караул','кп':'КП','у':'Усиление','оц':'Оцепление','з':'Занятия','р':'Рабочие','к':'Командировка','б':'Больничный','в':'Выходные','о':'Отсыпные','отп':'Отпуск','удн':'Учения дневные','усу':'Учения суточные'},ol=[['Сутки (наряды)',st.dutyN,POSTC]];keys.forEach(k=>{if(st.cnt[k])ol.push([nm[k],st.cnt[k],col(k)])});ol.sort((a,b)=>b[1]-a[1]);const dm=Math.max(1,ol[0][1]);
  h+='<h2>Остальные дни</h2><div class="card">';ol.forEach(x=>h+=row(x[0],x[1],dm,x[2]));h+='</div>';
  const mk=Object.keys(st.mon).sort(),mm=Math.max(1,...Object.values(st.mon));
  h+='<h2>Наряды по месяцам</h2><div class="card">';mk.forEach(k=>h+=row(MN[+k.slice(5)-1].slice(0,3)+' '+k.slice(2,4),st.mon[k],mm));h+='</div>';
@@ -172,7 +177,7 @@ function render(){const ready=S.start&&S.end;
  if(!ready){$('#app').innerHTML=setup();return}
  const t=[['home','Главная'],['cal','Календарь'],['st','Статистика'],['set','Настройки']];
  $('#nav').innerHTML=t.map(x=>'<button class="'+(tab===x[0]?'on':'')+'" onclick="tab=\''+x[0]+'\';msg=\'\';render()">'+x[1]+'</button>').join('');
- $('#app').innerHTML=tab==='home'?home():tab==='cal'?cal():tab==='st'?statsView():settings()}
+ $('#app').innerHTML=tab==='home'?home():tab==='cal'?cal()+legend():tab==='st'?statsView():settings()}
 try{const c=document.createElement('canvas');c.width=c.height=180;const x=c.getContext('2d');x.fillStyle='#4a5a2b';x.fillRect(0,0,180,180);x.fillStyle='#e3d9a6';x.beginPath();for(let i=0;i<10;i++){const r=i%2?32:76,a=-Math.PI/2+i*Math.PI/5;x[i?'lineTo':'moveTo'](90+r*Math.cos(a),94+r*Math.sin(a))}x.closePath();x.fill();document.getElementById('ati').href=c.toDataURL('image/png')}catch(e){}
 render();
 </script></body></html>
